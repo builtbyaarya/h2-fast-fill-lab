@@ -1,0 +1,48 @@
+# Aarya Chiripal, AME 310 Engineering Thermodynamics I, Prof. Penkova, USC, Fall 2026.
+# H2 Fast-Fill Lab, .streamlit/config.toml
+# Streamlit's own settings for the app: the light theme colours and the two bundled fonts.
+# Nothing here affects the model.
+
+[theme]
+base = "light"
+primaryColor = "#0071E3"
+backgroundColor = "#F5F5F7"
+secondaryBackgroundColor = "#FFFFFF"
+textColor = "#1D1D1F"
+font = "'Instrument Sans', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif"
+
+[[theme.fontFaces]]
+family = "Instrument Sans"
+url = "app/static/InstrumentSans-Variable.woff2"
+weight = "400 700"
+style = "normal"
+
+[[theme.fontFaces]]
+family = "Instrument Sans"
+url = "app/static/InstrumentSans-Italic-Variable.woff2"
+weight = "400 700"
+style = "italic"
+
+[[theme.fontFaces]]
+family = "Instrument Serif"
+url = "app/static/InstrumentSerif-Regular.woff2"
+weight = "400"
+style = "normal"
+
+[[theme.fontFaces]]
+family = "Instrument Serif"
+url = "app/static/InstrumentSerif-Italic.woff2"
+weight = "400"
+style = "italic"
+
+[server]
+headless = true
+enableStaticServing = true
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "minimal"
+showErrorDetails = true

@@ -1,0 +1,45 @@
+/* Aarya Chiripal, AME 310 Engineering Thermodynamics I, Prof. Penkova, USC, Fall 2026.
+   H2 Fast-Fill Lab, ui/assets/journey.css, read by ui/journey.py.
+   After the fill: the look of the paperwork that comes with a plant. Same colours and type as the rest of the app;
+   sheets have a drawn ink frame instead of a soft card, tags sit in bubbles and results are stamped. */
+.pf-doc { background: var(--card); border: 1.5px solid var(--ink); border-radius: 6px; box-shadow: var(--shadow); margin-bottom: 8px; overflow: hidden; }
+.pf-doc .pf-body { padding: 24px; }
+.pf-doc svg { display: block; width: 100%; height: auto; }
+.pf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 24px; border-bottom: 1.5px solid var(--ink); }
+.pf-head .pf-name { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); }
+.pf-head .pf-no { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.pf-block { display: grid; grid-template-columns: 2.4fr 1fr 1fr 1.2fr; border-top: 1.5px solid var(--ink); }
+.pf-block > div { padding: 8px 16px; border-left: 1px solid var(--ink); min-width: 0; }
+.pf-block > div:first-child { border-left: none; padding-left: 24px; }
+.pf-block .l { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); line-height: 14px; }
+.pf-block .v { font-size: 14px; font-weight: 600; color: var(--ink); line-height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pf-notes { padding: 0 24px 16px 24px; font-size: 12px; line-height: 18px; color: var(--muted); }
+.pf-notes b { color: var(--ink); font-weight: 600; letter-spacing: 0.06em; }
+table.pf-table { width: 100%; border-collapse: collapse; margin: 0 !important; table-layout: fixed; }
+.pf-table th, .pf-table td { border: none !important; background: transparent !important; text-align: left; vertical-align: top; }
+.pf-table th { font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 0 16px 8px 0 !important; border-bottom: 1.5px solid var(--ink) !important; }
+.pf-table td { font-size: 14px; line-height: 20px; color: var(--ink); padding: 12px 16px 12px 0 !important; border-bottom: 1px solid var(--grid) !important; }
+.pf-table tr:last-child td { border-bottom: none !important; }
+.pf-table th.n, .pf-table td.n { text-align: right; font-variant-numeric: tabular-nums; }
+.pf-table th:last-child, .pf-table td:last-child { padding-right: 0 !important; text-align: right; }
+.pf-table td.op { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pf-table td.what { color: var(--muted); }
+.pf-table td.what b { color: var(--ink); font-weight: 600; display: block; }
+.pf-table td.n { font-weight: 600; }
+.pf-table tr.total td { border-top: 1.5px solid var(--ink) !important; border-bottom: none !important; font-weight: 600; }
+.pf-table tr.total + tr.total td { border-top: 1px solid var(--grid) !important; }
+.pf-tag { display: inline-block; border: 1.2px solid var(--ink); border-radius: 999px; padding: 0 8px; font-size: 12px; line-height: 20px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.pf-stamp { display: inline-block; border: 1.5px solid var(--accent); color: var(--accent); border-radius: 4px; padding: 0 8px; font-size: 11px; line-height: 20px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; transform: rotate(-3deg); white-space: nowrap; }
+.pf-stamp.open { border-color: var(--red); color: var(--red); }
+.pf-stamp.quiet { border-color: var(--line); color: var(--muted); transform: none; }
+.pf-panel-title { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink); margin: 0 0 4px 0; }
+.pf-stale { font-size: 13px; line-height: 18px; color: var(--accent); margin: 8px 0 0 0; }
+.pf-hand { font-variant-numeric: tabular-nums; }
+.pf-hand .eq { font-size: 14px; line-height: 22px; color: var(--ink); margin: 0; }
+.pf-hand .eq.muted { color: var(--muted); }
+.pf-hand h3 { margin-top: 24px !important; }
+.pf-hand h3:first-child { margin-top: 0 !important; }
+.stMarkdown .card p.pf-sub { font-size: 11px !important; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 28px 0 4px 0; }
+.stMarkdown .card h3 + p.pf-sub { margin-top: 12px; }
+.pf-intro h2 { margin: 0 0 4px 0 !important; }
+.pf-intro p { color: var(--muted); font-size: 17px; line-height: 1.45; margin: 0 0 16px 0; max-width: 70ch; }

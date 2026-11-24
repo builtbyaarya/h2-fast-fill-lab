@@ -1,0 +1,18 @@
+<!-- Aarya Chiripal, AME 310 Engineering Thermodynamics I, Prof. Penkova, USC, Fall 2026.
+     H2 Fast-Fill Lab, ui/assets/scene.html: the empty frame of the station scene. scene.js draws the station on
+     the first canvas and the chart on the second, from the numbers ui/scene.py reads out of the model. -->
+<div class="h2s">
+  <div class="h2s-scene">
+    <canvas class="h2s-canvas" aria-label="Hydrogen station: three storage banks, dispenser, precooler and the car"></canvas>
+    <div class="h2s-stats">
+      <div class="h2s-stat"><div class="l">Pressure, MPa</div><div class="v" data-k="P">0.0</div></div>
+      <div class="h2s-stat"><div class="l">Gas temperature, °C</div><div class="v" data-k="T">0.0</div></div>
+    </div>
+    <div class="h2s-clock"><div class="l">Time</div><div class="v" data-k="clock">0:00.0</div></div>
+  </div>
+  <div class="h2s-chart">
+    <div class="h2s-bar"><div class="h2s-seg" role="radiogroup" aria-label="Chart"></div><div class="h2s-at"></div></div>
+    <div class="h2s-legend"></div>
+    <canvas class="h2s-plot" aria-label="Chart of the fill against time"></canvas>
+  </div>
+</div>

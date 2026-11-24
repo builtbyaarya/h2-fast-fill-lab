@@ -1,0 +1,26 @@
+/* Aarya Chiripal, AME 310 Engineering Thermodynamics I, Prof. Penkova, USC, Fall 2026.
+   H2 Fast-Fill Lab, ui/assets/scene.css
+   Styles for the station scene and the chart under it (the markup is in scene.html, the drawing in scene.js).
+   The scene only shows what the model computed, so nothing here touches the physics. */
+.h2s { font-family: "Instrument Sans", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; color: #1D1D1F; font-variant-numeric: tabular-nums; }
+.h2s-scene { position: relative; background: #FFFFFF; border-radius: 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 28px rgba(0,0,0,0.08); overflow: hidden; }
+.h2s-canvas { display: block; width: 100%; }
+.h2s-stats { position: absolute; left: 24px; top: 24px; display: flex; gap: 32px; }
+.h2s-clock { position: absolute; right: 24px; top: 24px; text-align: right; }
+.h2s .l { font-size: 13px; font-weight: 500; color: #6E6E73; line-height: 1.2; }
+.h2s .v { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; color: #1D1D1F; }
+.h2s .v.over { color: #FF3B30; }
+.h2s-chart { margin-top: 16px; background: #FFFFFF; border-radius: 18px; box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 28px rgba(0,0,0,0.08); padding: 16px 24px 16px 24px; }
+.h2s-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.h2s-seg { display: inline-flex; background: #E8E8ED; border-radius: 980px; padding: 3px; }
+.h2s-seg button { font-family: inherit; font-size: 13px; font-weight: 500; color: #6E6E73; background: transparent; border: none; border-radius: 980px; padding: 0 16px; height: 30px; cursor: pointer; white-space: nowrap; }
+.h2s-seg button:hover { color: #1D1D1F; }
+.h2s-seg button[aria-checked="true"] { background: #FFFFFF; color: #1D1D1F; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.14); }
+.h2s-seg button:focus-visible { outline: 3px solid rgba(0,113,227,0.4); }
+.h2s-at { font-size: 13px; color: #6E6E73; white-space: nowrap; }
+.h2s-legend { display: flex; flex-wrap: wrap; gap: 8px 24px; margin: 16px 0 8px 0; min-height: 20px; }
+.h2s-legend .it { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #6E6E73; }
+.h2s-legend .sw { width: 16px; height: 0; border-top: 2px solid #0071E3; }
+.h2s-legend b { color: #1D1D1F; font-weight: 600; min-width: 40px; }
+.h2s-plot { display: block; width: 100%; height: 248px; cursor: crosshair; touch-action: none; }
+.h2s.hero .h2s-stats, .h2s.hero .h2s-chart { display: none; }
