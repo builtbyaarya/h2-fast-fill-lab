@@ -1,0 +1,5 @@
+# Extra packages for the scripts in paper/ (the app does not need them).
+# numba compiles the two-zone time loop, which makes the optimisation and the sensitivity study about 300 times faster.
+-r requirements.txt
+numba>=0.61
+python-docx>=1.1

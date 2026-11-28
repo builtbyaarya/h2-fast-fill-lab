@@ -154,3 +154,22 @@ the fuel cell, electrolyser and station cost figures.
 The live app runs on Streamlit Community Cloud from the GitHub repository
 above: branch `main`, file `app.py`. The pinned `requirements.txt` and
 `.python-version` are what it installs from.
+
+## Research model (h2lab/research)
+
+The Research model page and the scripts in `paper/` use a second tank model, kept beside the class model so the two can be compared.
+
+- `h2lab/research/twozone.py`: the gas in the car's tank is split into an upper and a lower zone at one pressure, each with its own mass, internal energy and temperature. The zones exchange mass through jet entrainment (Ricou and Spalding) reduced by a Richardson number, and the wall is solved through its thickness by one-dimensional conduction. The 85 °C limit is checked against the hotter zone.
+- `h2lab/research/props.py`: real-gas hydrogen properties from CoolProp, tabulated on a density and temperature grid.
+- `h2lab/research/station.py`: station electricity on one system boundary. Compressor stages, intercooling, real-gas enthalpy, isentropic, mechanical and motor efficiency, and the hydrogen drawn from each bank, with every kilogram compressed once.
+- `h2lab/research/optimize.py`: NSGA-II over two ramp rates, their change point, two bank switching margins and two precooler set points, for fill time, electricity and operating cost.
+- `h2lab/research/uq.py`: Sobol sensitivity indices and Monte Carlo propagation.
+- `h2lab/research/jrc.py`: the JRC GasTeF validation data, transcribed from the two conference papers, and the error metrics.
+
+To regenerate every number and figure of the manuscript:
+
+    pip install -r requirements-paper.txt
+    python paper/run_all.py
+    python paper/figures.py
+
+Which parameters are taken from independent sources, which are assumed and which are fitted is listed at the top of `h2lab/research/jrc.py`.

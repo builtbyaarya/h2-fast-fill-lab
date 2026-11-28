@@ -5,8 +5,8 @@ H2 Fast-Fill Lab, app.py
 What this file does
     This is the file Streamlit runs. It sets the page up, loads the stylesheet,
     shows the opening screen until a mode is picked, then draws the bar at the
-    top and sends the visitor to one of three pages: Simulate, Levels or
-    How it works.
+    top and sends the visitor to one of four pages: Simulate, Levels,
+    How it works or Research model.
 
 Where it fits in the model
     Nowhere in the thermodynamics; I kept every equation in the h2lab package
@@ -23,13 +23,13 @@ from __future__ import annotations
 import streamlit as st
 
 from h2lab.simulation import FillConfig
-from ui import explained, home, levels, run, styles, tour
+from ui import explained, home, levels, research, run, styles, tour
 
 st.set_page_config(page_title="H₂ Fast-Fill Lab", page_icon=None, layout="wide", initial_sidebar_state="collapsed",
                    menu_items={"Get help": None, "Report a bug": None, "About": None})
 styles.inject()
 
-PAGES = [("simulate", "Simulate"), ("levels", "Levels"), ("explained", "How it works")]
+PAGES = [("simulate", "Simulate"), ("levels", "Levels"), ("explained", "How it works"), ("research", "Research model")]
 
 st.session_state.setdefault("page", "simulate")
 if st.session_state["page"] not in dict(PAGES):
@@ -43,7 +43,7 @@ if not home.chosen():
 
 
 def topnav() -> None:
-    """The name on the left (it returns to the opening screen) and three destinations on the right."""
+    """The name on the left (it returns to the opening screen) and four destinations on the right."""
     with st.container(key="topnav", horizontal=True, vertical_alignment="center", gap="small"):
         if st.button("Fast-Fill Lab", key="nav_home", type="tertiary", width="content"):
             st.session_state["started"] = False
@@ -64,6 +64,8 @@ if page == "simulate":
     run.render_run_screen("free", FillConfig(property_mode="real", dt=0.1))
 elif page == "levels":
     levels.render_levels()
+elif page == "research":
+    research.render()
 else:
     explained.render(st.session_state.get("free__sim"))
 

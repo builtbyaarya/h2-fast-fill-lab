@@ -1,7 +1,7 @@
 # Aarya Chiripal, AME 310 Engineering Thermodynamics I, Prof. Penkova, USC, Fall 2026.
 # H2 Fast-Fill Lab, requirements.txt: the packages the app needs, pinned. CoolProp gives the real-gas hydrogen and
 # refrigerant properties, numpy holds the time series, streamlit and plotly draw the interface, matplotlib saves the
-# report graphs and pytest runs the checks. Tested with Python 3.10 to 3.14. Run the app from this folder with: streamlit run app.py
+# report graphs and pytest runs the checks. Tested with Python 3.10 to 3.14. Start the app from this folder with: streamlit run app.py
 streamlit==1.65.0
 CoolProp==8.0.0
 numpy>=2.2.6,<3

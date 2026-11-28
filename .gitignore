@@ -4,3 +4,11 @@ __pycache__/
 .DS_Store
 screenshots/
 *.zip
+h2lab/research/h2_table.npz
+paper/manuscript.md
+paper/manuscript_template.md
+paper/*.docx
+paper/results/log*.txt
+paper/results/crossref.json
+paper/results/dois.txt
+paper/results/refs_crossref.json
