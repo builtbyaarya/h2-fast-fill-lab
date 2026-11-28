@@ -1,6 +1,7 @@
 """
 Runs every calculation reported in the manuscript and writes the results to paper/results/.
-Usage:  python paper/run_all.py [part ...]     parts: numerics validation reference maps optimise sensitivity energy
+Usage:  python paper/run_all.py [part ...]
+parts:  numerics validation validation_extra reference maps mixing optimise sensitivity energy
 """
 import json, os, pickle, sys, time
 from dataclasses import replace
@@ -134,10 +135,29 @@ def validation():
     save("validation", res)
 
 
+def validation_extra():
+    """Additions of the second version: mean temperature of the precooled fills against the temperature implied by
+    the measured state of charge, and the 244 L tank of the J2601 validation programme."""
+    res = pickle.load(open(os.path.join(OUT, "validation.pkl"), "rb"))
+    p, m = jrc.run_table8()
+    Ti = jrc.table8_implied_T()
+    res["table8_T"] = dict(pred=p[:, 1], implied=Ti, m=jrc.metrics(p[:, 1], Ti))
+    t244 = []
+    for case in jrc.TANK_244L:
+        row = dict(case=case, runs=[])
+        for asp in (2.5, 3.0, 4.0):
+            for dT in (0.0, 10.0):
+                o = jrc.run_244L(case, aspect=asp, dT_in=dT)
+                row["runs"].append((asp, dT, o.Tu_end - C0, o.Tl_end - C0, 0.5 * (o.Tu_end + o.Tl_end) - C0, o.t_fill))
+        t244.append(row)
+    res["tank244"] = t244
+    save("validation", res)
+
+
 # ---------------------------------------------------------------------------------------------------------
 def reference():
     res = {}
-    f = base_fill(store_every=0.5)
+    f = base_fill(store_every=0.1)
     o = f.run()
     res["ref"] = dict(summ(o, account(o)), s=o.s)
     o1 = replace(f, closure=Closure(beta=50.0)).run()
@@ -145,6 +165,19 @@ def reference():
     for T in (0.0, 40.0):
         ox = base_fill(T).run()
         res["ref_%d" % T] = summ(ox, account(ox))
+    # SAE J2601 baseline (table APRR of the 4-7 kg H70-T40 table, T40 precooling) at each ambient temperature
+    res["j2601"] = {}
+    for T in (0.0, 25.0, 40.0):
+        b = base_fill(T)
+        oj = op.apply(b, op.j2601(T)).run()
+        xw = op.j2601(T)
+        xw[5] = xw[6] = op.T40_WINDOW[1]
+        ow = op.apply(b, xw).run()
+        res["j2601"][T] = dict(x=op.j2601(T).tolist(), **summ(oj, account(oj)), warm=summ(ow, account(ow)))
+    bf = base_fill(25.0)
+    bf = replace(bf, control=replace(bf.control, soc_target=100.0, P_stop=op.J2601_TARGET_25C))
+    of = op.apply(bf, op.j2601(25.0)).run()
+    res["j2601_full"] = summ(of, account(of))
     # class model (lumped gas and wall, stop at 70 MPa) and the research model with the same stop rule
     from h2lab.simulation import FillConfig, FillSimulation
     from h2lab import chain
@@ -196,45 +229,134 @@ def pick(front, base, t_ref, e_ref):
     return out
 
 
-def optimise():
+def mixing():
+    """Weak-mixing cases for the robust optimisation: the (beta, Ri_c) pairs that reproduce the end-of-fill
+    thermocouple spread of [A11] Fig. 5 at its plausible upper bound, and the grid behind Fig. 9."""
+    import math
+    spread_max = 2.0 * jrc.FIG5["spread_end"]
+    def spread(b, r):
+        o = jrc.run_history(jrc.FIG5, closure=Closure(beta=b, Ri_c=r))
+        return o.Tu_end - o.Tl_end
+    contour = []
+    for b in (0.15, 0.25, 0.5, 1.0):
+        lo, hi = math.log(0.1), math.log(10.0)
+        if spread(b, 0.1) <= spread_max:
+            contour.append((b, 0.1))
+            continue
+        for _ in range(14):
+            m = 0.5 * (lo + hi)
+            if spread(b, math.exp(m)) > spread_max:
+                lo = m
+            else:
+                hi = m
+        contour.append((b, math.exp(hi)))
+    betas = np.array([0.15, 0.2, 0.25, 0.35, 0.5, 0.7, 1.0])
+    rics = np.exp(np.linspace(np.log(0.1), np.log(10.0), 9))
+    grid = np.array([[spread(b, r) for r in rics] for b in betas])
+    save("mixing", dict(contour=contour, spread_max=spread_max, measured=jrc.FIG5["spread_end"], betas=betas, rics=rics, spread=grid))
+
+
+def adaptive():
+    """Value of a set point that changes with pressure: each design is compared with the same design run at the warmest
+    constant set point that keeps it feasible with the nominal and the data-consistent weak mixing."""
+    o = pickle.load(open(os.path.join(OUT, "optimise.pkl"), "rb"))[25.0]
+    base = base_fill(25.0)
+    def ok(x):
+        f, g = op.evaluate(x, base, robust=op.MIX_DATA)
+        return bool(np.all(g <= 0)), f
+    rows = []
+    cases = [("J2601 ramp", op.j2601(25.0), o["subsets"]["precooling"]["picks"]["lean10"])] + \
+            [("robust " + k, np.array(o["robust"]["picks"][k]["x"]), o["robust"]["picks"][k]) for k in ("knee", "lean")]
+    for name, x, adaptive_pick in cases:
+        lo, hi = -40.0, 0.0
+        for _ in range(16):
+            mid = 0.5 * (lo + hi)
+            xx = np.array(x, float); xx[5] = xx[6] = mid
+            if ok(xx)[0]:
+                lo = mid
+            else:
+                hi = mid
+        xx = np.array(x, float); xx[5] = xx[6] = lo
+        f, g, out, acc = op.evaluate(xx, base, full=True)
+        rows.append(dict(name=name, T_const=lo, t_const=f[0], e_const=f[1], t_adapt=adaptive_pick["t"], e_adapt=adaptive_pick["e_station"],
+                         x_adapt=adaptive_pick["x"]))
+        print(rows[-1], flush=True)
+    # every design of the nominal front evaluated with the data-consistent weak mixing
+    wb = op.low_mixing(base, op.MIX_DATA)
+    weak = np.array([op.apply(wb, x).run().T_hot - C0 for x in o["nominal"]["X"]])
+    save("adaptive", dict(rows=rows, nominal_weak=weak, nominal_t=o["nominal"]["F"][:, 0]))
+
+
+def check_mixing(base, x, contour):
+    """Maximum local temperature of design x on the plausible-mixing contour, at the data-consistent worst case,
+    at the calibrated closure and at the corner of the a-priori box."""
+    rows = []
+    for b, r in list(contour) + [(op.MIX_BOX["beta"], op.MIX_BOX["Ri_c"]), (jrc.BETA_FIT, 1.0)]:
+        oo = op.apply(replace(base, closure=Closure(beta=b, Ri_c=r)), x).run()
+        rows.append((b, r, oo.T_hot - C0, oo.Tbulk_max - C0, oo.t_fill, oo.soc))
+    return rows
+
+
+def optimise(temps=(25.0, 0.0, 40.0), name="optimise"):
+    """The 25 degC block and the 0/40 degC blocks can run in two processes: `optimise_25` and `optimise_0_40`
+    write separate files and `optimise_merge` joins them into optimise.pkl."""
+    mix = pickle.load(open(os.path.join(OUT, "mixing.pkl"), "rb"))
+    contour = mix["contour"]
     res = {}
-    for T, pop, gens in ((25.0, 120, 100), (0.0, 96, 60), (40.0, 96, 60)):
+    pop, gens = 100, 80
+    for T in temps:
         base = base_fill(T)
-        fr, gr, o, a = op.evaluate(op.REFERENCE, base, full=True)
-        t0 = time.time()
-        full = op.nsga2(base, pop=pop, gens=gens, seed=11, log=lambda h: print(T, h, flush=True))
-        block = dict(ref=summ(o, a), ref_g=gr.tolist(), front=full, wall_s=time.time() - t0)
-        block["picks"] = pick(full, base, fr[0], fr[1])
+        x0 = op.j2601(T)
+        fr, gr, o, a = op.evaluate(x0, base, full=True, robust=op.MIX_DATA)
+        block = dict(ref=summ(o, a), ref_g=gr.tolist(), ref_x=x0.tolist(), ref_check=check_mixing(base, x0, contour))
+        cases = (("robust", op.MIX_DATA),) if T != 25.0 else (("nominal", None), ("robust", op.MIX_DATA), ("box", op.MIX_BOX))
+        for case, rob in cases:
+            t0 = time.time()
+            fr_ = op.nsga2(base, pop=pop, gens=gens, seed=11, robust=rob, seeds=(x0,), log=lambda h: print(T, case, h, flush=True))
+            fr_["wall_s"] = time.time() - t0
+            fr_["picks"] = pick(fr_, base, fr[0], fr[1])
+            fr_["checks"] = {k: check_mixing(base, v["x"], contour) for k, v in fr_["picks"].items()}
+            block[case] = fr_
         if T == 25.0:
-            subsets = {"precooling": {0: 18.5, 1: 18.5, 2: 0.5, 3: 2.0, 4: 2.0},
-                       "cascade": {0: 18.5, 1: 18.5, 2: 0.5, 5: -40.0, 6: -40.0},
+            subsets = {"precooling": {0: x0[0], 1: x0[1], 2: 0.5, 3: 2.0, 4: 2.0},
+                       "cascade": {0: x0[0], 1: x0[1], 2: 0.5, 5: -40.0, 6: -40.0},
                        "ramp": {3: 2.0, 4: 2.0, 5: -40.0, 6: -40.0}}
             block["subsets"] = {}
-            for name, fixed in subsets.items():
-                s = op.nsga2(base, pop=64, gens=50, seed=5, fixed=fixed)
-                block["subsets"][name] = dict(front=s, picks=pick(s, base, fr[0], fr[1]))
-                print("subset", name, len(s["F"]), flush=True)
-            # second seed, to check that the front is reproduced
-            full2 = op.nsga2(base, pop=pop, gens=gens, seed=23)
-            block["front_seed2"] = full2
-            # sensitivity of the selected designs to the closure parameters
-            rob = {}
-            for name in ("fast", "lean", "knee"):
-                x = block["picks"][name]["x"]
-                rows = []
-                for b in (0.15, 0.35, 1.0):
-                    for ric in (0.1, 1.0, 10.0):
-                        oo = op.apply(replace(base, closure=Closure(beta=b, Ri_c=ric)), x).run()
-                        rows.append((b, ric, oo.T_hot - C0, oo.Tbulk_max - C0, oo.t_fill, oo.soc))
-                rob[name] = rows
-            block["robust"] = rob
-            # histories of reference and selected designs
+            for sub, fixed in subsets.items():
+                sfr = op.nsga2(base, pop=64, gens=50, seed=5, fixed=fixed, robust=op.MIX_DATA, seeds=(x0,))
+                block["subsets"][sub] = dict(front=sfr, picks=pick(sfr, base, fr[0], fr[1]))
+                print("subset", sub, len(sfr["F"]), flush=True)
+            # second seed, to check that the robust front is reproduced
+            block["robust_seed2"] = op.nsga2(base, pop=pop, gens=gens, seed=23, robust=op.MIX_DATA, seeds=(x0,))
             block["hist"] = {}
-            for name in ("fast", "lean", "knee"):
-                oo = op.apply(replace(base, store_every=0.5), block["picks"][name]["x"]).run()
-                block["hist"][name] = oo.s
+            for k in ("fast", "lean", "knee"):
+                oo = op.apply(replace(base, store_every=0.5), block["robust"]["picks"][k]["x"]).run()
+                block["hist"][k] = oo.s
+            block["hist"]["ref"] = op.apply(replace(base, store_every=0.5), x0).run().s
         res[T] = block
-        save("optimise", res)
+        save(name, res)
+
+
+def optimise_25():
+    optimise((25.0,), "optimise_25")
+
+
+def optimise_0_40():
+    optimise((0.0, 40.0), "optimise_0_40")
+
+
+def optimise_merge():
+    res = {}
+    for n in ("optimise_25", "optimise_0_40"):
+        res.update(pickle.load(open(os.path.join(OUT, n + ".pkl"), "rb")))
+    save("optimise", res)
+    # robust 25 degC front for the app's Research page
+    fr = res[25.0]["robust"]
+    o = np.argsort(fr["F"][:, 0])
+    c = [float(account(op.apply(base_fill(25.0), x).run())["c_op"]) for x in fr["X"][o]]
+    json.dump(dict(t=fr["F"][o, 0].tolist(), e=fr["F"][o, 1].tolist(), c=c, x=fr["X"][o].tolist(),
+                   ref=dict(t=res[25.0]["ref"]["t"], e=res[25.0]["ref"]["e_station"])),
+              open(os.path.join(OUT, "pareto_25C.json"), "w"))
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -276,7 +398,8 @@ def energy():
         a = account(o, spec, replace(eco, cars_per_day=float(c)))
         kg_day = c * o.m_added
         e_standby = standby_kW * 24.0 / kg_day
-        rows.append((c, kg_day, a["c_cap"], a["c_energy"], a["c_demand"], eco.price_energy * e_standby, e_standby, a["e_station"]))
+        rows.append((c, kg_day, a["c_cap"], a["c_energy"], a["c_demand"], eco.price_energy * e_standby, e_standby, a["e_station"],
+                     a["c_cap_lo"], a["c_cap_hi"], a["capex"]))
     res["util"] = np.array(rows)
     res["capacity_cars_per_hour"] = 3600.0 / (o.t_fill + eco.t_idle)
     res["eco"] = eco.__dict__
@@ -285,7 +408,8 @@ def energy():
 
 
 if __name__ == "__main__":
-    parts = sys.argv[1:] or ["numerics", "validation", "reference", "maps", "optimise", "sensitivity", "energy"]
+    parts = sys.argv[1:] or ["numerics", "validation", "validation_extra", "reference", "maps", "mixing", "optimise", "adaptive",
+                             "sensitivity", "energy"]
     for p in parts:
         t0 = time.time()
         globals()[p]()

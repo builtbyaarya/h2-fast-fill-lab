@@ -12,3 +12,9 @@ paper/results/log*.txt
 paper/results/crossref.json
 paper/results/dois.txt
 paper/results/refs_crossref.json
+paper/_build/
+paper/*.pdf
+paper/_body.md
+paper/manuscript_docx.md
+paper/results/optimise_25.pkl
+paper/results/optimise_0_40.pkl

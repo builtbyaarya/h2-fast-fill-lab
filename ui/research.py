@@ -142,12 +142,13 @@ def render() -> None:
             st.subheader("Against the optimised fills (25 °C ambient, 5 MPa start)")
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=fr["t"], y=fr["e"], mode="markers", name="Pareto front", marker=dict(color="#6a4ce2", size=6)))
-            fig.add_trace(go.Scatter(x=[fr["ref"]["t"]], y=[fr["ref"]["e"]], mode="markers", name="Reference fill",
+            fig.add_trace(go.Scatter(x=[fr["ref"]["t"]], y=[fr["ref"]["e"]], mode="markers", name="SAE J2601 table fill",
                                      marker=dict(color="#191919", size=12, symbol="star-open")))
             fig.add_trace(go.Scatter(x=[r["t"]], y=[a["e_station"]], mode="markers", name="This fill",
                                      marker=dict(color="#f47230", size=12, symbol="diamond")))
             fig.update_layout(height=320, margin=dict(l=10, r=10, t=30, b=10), xaxis_title="Fill time, s",
                               yaxis_title="Station electricity, kWh/kg", legend=dict(orientation="h", y=1.12))
             st.plotly_chart(fig, width="stretch")
-            st.caption("Each point of the front is a fill that reaches 95 % state of charge with the hotter zone below 85 °C and the "
-                       "pressure below 87.5 MPa, and that no other such fill beats on both time and electricity.")
+            st.caption("Each point of the front is a fill that reaches 95 % state of charge with the hotter zone below 85 °C, also when "
+                       "zone mixing is as weak as the JRC thermocouple data allow, and the pressure below 87.5 MPa, and that no other "
+                       "such fill beats on both time and electricity.")

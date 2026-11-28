@@ -162,14 +162,16 @@ The Research model page and the scripts in `paper/` use a second tank model, kep
 - `h2lab/research/twozone.py`: the gas in the car's tank is split into an upper and a lower zone at one pressure, each with its own mass, internal energy and temperature. The zones exchange mass through jet entrainment (Ricou and Spalding) reduced by a Richardson number, and the wall is solved through its thickness by one-dimensional conduction. The 85 °C limit is checked against the hotter zone.
 - `h2lab/research/props.py`: real-gas hydrogen properties from CoolProp, tabulated on a density and temperature grid.
 - `h2lab/research/station.py`: station electricity on one system boundary. Compressor stages, intercooling, real-gas enthalpy, isentropic, mechanical and motor efficiency, and the hydrogen drawn from each bank, with every kilogram compressed once.
-- `h2lab/research/optimize.py`: NSGA-II over two ramp rates, their change point, two bank switching margins and two precooler set points, for fill time, electricity and operating cost.
+- `h2lab/research/optimize.py`: NSGA-II over two ramp rates, their change point, two bank switching margins and two precooler set points, for fill time and station electricity, compared with the SAE J2601 table fill for the same tank. The robust version also keeps the hotter zone below 85 °C when zone mixing is as weak as the JRC thermocouple spread allows.
 - `h2lab/research/uq.py`: Sobol sensitivity indices and Monte Carlo propagation.
-- `h2lab/research/jrc.py`: the JRC GasTeF validation data, transcribed from the two conference papers, and the error metrics.
+- `h2lab/research/jrc.py`: the JRC GasTeF validation data, transcribed from the two conference papers, two 244 L fills from the SAE J2601 validation programme, and the error metrics.
 
 To regenerate every number and figure of the manuscript:
 
     pip install -r requirements-paper.txt
     python paper/run_all.py
     python paper/figures.py
+
+`run_all.py` takes part names (for example `python paper/run_all.py optimise_25 optimise_0_40 optimise_merge`) so the 25 °C optimisation and the 0 and 40 °C optimisations can run in two processes.
 
 Which parameters are taken from independent sources, which are assumed and which are fitted is listed at the top of `h2lab/research/jrc.py`.

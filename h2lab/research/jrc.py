@@ -266,3 +266,43 @@ def calibrate_beta(betas=(0.05, 0.1, 0.2, 0.3, 0.5, 1.0), tank=None):
         o = run_history(FIG5, tank=tank, closure=Closure(beta=b))
         res.append((b, o.Tu_end - o.Tl_end))
     return res
+
+
+# ---- larger tank: 244 L Type IV fills of the SAE J2601 validation programme -------------------------------
+# Schneider et al., SAE Int. J. Altern. Powertrains 3 (2014) 257, as tabulated by Kuroki et al., Energy Technol.
+# 11 (2023) 2300239, Table 2: initial and final pressure, duration, ambient temperature, minimum gas temperature
+# at the tank inlet, and the gas temperature at thermocouple TC2 at the end of the fill. Tank dimensions, wall
+# thickness and the inlet temperature history are not published.
+TANK_244L = [
+    dict(name="fast", P0=2.1e6, Pf=71.6e6, t=310.0, T_amb=19.5, T_in_min=-31.0, Tf=76.5),
+    dict(name="slow", P0=5.2e6, Pf=80.3e6, t=536.0, T_amb=50.0, T_in_min=-32.0, Tf=76.2),
+]
+
+
+def tank_244L(aspect: float = 3.0) -> Tank:
+    """244 L Type IV tank with the class-model wall, the composite thickness scaled with the diameter (hoop stress)."""
+    base = Tank()
+    D0, _, _ = base.geometry()
+    tk = Tank(volume=0.244, aspect=aspect)
+    D, _, _ = tk.geometry()
+    return replace(tk, wall=replace(base.wall, t_liner=0.004, t_cfrp=base.wall.t_cfrp * D / D0))
+
+
+def run_244L(case: dict, aspect=3.0, dT_in=0.0, closure=None):
+    """Linear pressure history over the measured duration; inlet gas at the reported minimum plus dT_in."""
+    r = (case["Pf"] - case["P0"]) / 1e6 / (case["t"] / 60.0)
+    f = rig_fill(tank_244L(aspect), case["P0"], case["Pf"], C0 + case["T_amb"], r, r, case["P0"] + 1e4,
+                 T_in=C0 + case["T_in_min"] + dT_in, closure=closure, T_amb=C0 + case["T_amb"])
+    return f.run()
+
+
+def table8_implied_T():
+    """Mean gas temperature implied by the measured final state of charge and end pressure of [A13] Table 8.
+    This is a measured quantity (pressure and mass), so it tests the predicted mean temperature of the precooled
+    fills without a thermocouple."""
+    import CoolProp.CoolProp as CP
+    from .twozone import RHO_FULL
+    out = []
+    for Tpc, T0, Pe, aprr, soc in TABLE8:
+        out.append(CP.PropsSI("T", "P", Pe * 1e6, "D", soc / 100.0 * RHO_FULL, "Hydrogen") - C0)
+    return np.array(out)

@@ -38,6 +38,12 @@ Refrigeration
     Q_pc / COP(T_evap) with T_evap = T_set - pinch. Here it is divided by the
     drive efficiency of that compressor.
 
+Capital cost
+    The DOE reference cost (1.9 M$, 2016 dollars) belongs to stations with a
+    median capacity of 1,500 kg/day. It is scaled to the capacity of the
+    station studied here with C = C_ref (Q / Q_ref)^n, n = 0.7, and the range
+    n = 0.6 to 0.8 is reported.
+
 Operating cost per kilogram
     energy charge  p_e (e_comp + e_ref)
     demand charge  c_d P_15 / M_month, where P_15 is the 15-minute average
@@ -79,7 +85,10 @@ class Economics:
     demand_charge: float = 15.0      # $/kW per month (assumed)
     t_idle: float = 120.0            # s between two fills on one dispenser at peak (assumed)
     cars_per_day: float = 40.0       # (assumed)
-    capex: float = 1.9e6             # $, station (U.S. DOE Hydrogen Program Record 21002, median)
+    capex_ref: float = 1.9e6         # $ (2016), median capital cost of 111 California stations (DOE Record 21002)
+    capacity_ref: float = 1500.0     # kg/day, median daily capacity of the same stations (DOE Record 21002)
+    scale_n: float = 0.7             # capacity exponent of the capital cost (range 0.6 to 0.8, assumed)
+    capacity: float | None = None    # kg/day the station is sized for (None: the daily mass dispensed)
     interest: float = 0.08           # (assumed)
     life_years: int = 15             # (assumed)
     fixed_om_frac: float = 0.03      # yearly fixed operation and maintenance as a fraction of capex (assumed)
@@ -152,6 +161,12 @@ def refill_work(out: FillOut, spec: CompressorSpec, n_quad: int = 24) -> dict:
     return dict(rows=rows, W=W, W_class=W_class, m=m_tot)
 
 
+def capex(eco: "Economics", kg_day: float, n: float | None = None) -> float:
+    """Station capital cost scaled from the DOE reference station by the capacity power law C = C_ref (Q/Q_ref)^n."""
+    n = eco.scale_n if n is None else n
+    return eco.capex_ref * (kg_day / eco.capacity_ref) ** n
+
+
 def crf(i: float, n: int) -> float:
     g = (1.0 + i) ** n
     return i * g / (g - 1.0)
@@ -180,15 +195,22 @@ def account(out: FillOut, spec: CompressorSpec | None = None, eco: Economics | N
     c_demand = eco.demand_charge * P15 / M_month
     c_op = c_energy + c_demand
     # capital and utilisation
-    kg_year = eco.cars_per_day * m * 365.0
-    c_cap = eco.capex * (crf(eco.interest, eco.life_years) + eco.fixed_om_frac) / kg_year
+    kg_day = eco.cars_per_day * m
+    kg_year = kg_day * 365.0
+    cap_q = eco.capacity if eco.capacity is not None else kg_day
+    ann = crf(eco.interest, eco.life_years) + eco.fixed_om_frac
+    C_st = capex(eco, cap_q)
+    c_cap = C_st * ann / kg_year
+    c_cap_lo = capex(eco, cap_q, 0.8) * ann / kg_year      # n = 0.8 gives the lower cost below the reference capacity
+    c_cap_hi = capex(eco, cap_q, 0.6) * ann / kg_year
     # pathway on one basis: electricity in per kg dispensed, electricity out of the fuel cell per kg
     e_prod = eco.electrolyser_kwh_kg
     e_out = eco.fuel_cell_eta * LHV / KWH
     return dict(
         e_comp=e_comp, e_comp_gas=e_comp_gas, e_comp_class=e_comp_class, e_ref=e_ref, e_ref_shaft=e_ref_shaft,
         q_cool=q_cool, e_station=e_station, banks=rw["rows"], P15=P15, P_comp_rated=P_comp_rated,
-        c_energy=c_energy, c_demand=c_demand, c_op=c_op, c_cap=c_cap, c_total=c_op + c_cap + eco.price_energy * e_prod,
+        c_energy=c_energy, c_demand=c_demand, c_op=c_op, c_cap=c_cap, c_cap_lo=c_cap_lo, c_cap_hi=c_cap_hi, capex=C_st,
+        c_total=c_op + c_cap + eco.price_energy * e_prod,
         e_prod=e_prod, e_in=e_prod + e_station, e_out=e_out, round_trip=e_out / (e_prod + e_station),
         eta_station=(LHV / KWH) / (LHV / KWH + e_station), peak_ref_kW=out.Wref_max / eco.eta_ref_drive / 1000.0,
         peak_cool_kW=out.Qpc_max / 1000.0, COP_mean=out.E_cool / out.E_ref if out.E_ref > 0 else float("nan"),
